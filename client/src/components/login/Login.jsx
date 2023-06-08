@@ -10,21 +10,26 @@ export const Login = () =>{
 
     const navigate = useNavigate();
     const [username, setUsername] = useState("");
-    
+    const [roomNum, setRoomNum] = useState(0);
 
     const handleChange = (e) =>{
         setUsername(e.target.value);
     }
+    const handleRoomChange = (e) =>{
+        setRoomNum(e.target.value);
+    }
 
     const handleSubmit = () =>{
-        socket.emit("Login", username);
+        socket.emit("Login", username, roomNum);
         cookies.set("username", username);
-        navigate("/game");
+        cookies.set("roomNumber", roomNum);
+        navigate(`/game?roomId=${roomNum}`);
     }
 
     return (
         <div className="Login">
-            <input type='text' className="user-name" value={username} onChange={(e) => handleChange(e)} />
+            <input required type='text' className="username-input" value={username} onChange={(e) => handleChange(e)} />
+            <input type="number" className="room-input" value = {roomNum} onChange={e => handleRoomChange(e)} />
             <button className="submit-btn"
             onClick={handleSubmit}
             >Login</button>

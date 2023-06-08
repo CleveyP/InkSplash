@@ -1,11 +1,16 @@
 import React, { useState } from "react";
 import { socket } from "../../socket";
 import { cookies } from "../login/Login";
+import { useSearchParams } from "react-router-dom";
+
 
 export const ChatBar = (props) =>{
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState("");
+    const [searchParams] = useSearchParams();
+    const roomId = searchParams.get("roomId");
 
+    console.log(roomId);
     socket.on("connect", () =>{
         console.log("connected!");
     });
@@ -22,7 +27,7 @@ export const ChatBar = (props) =>{
     const sendMessage = () =>{
         const newMessage = {username: cookies.get("username"), message: text};
         setMessages([...messages, newMessage]);
-        socket.emit("sendMessage", newMessage);
+        socket.emit("sendMessage", newMessage, roomId);
     }
 
     return (
@@ -30,6 +35,7 @@ export const ChatBar = (props) =>{
             {
                 (cookies.get("username")) ? <h1>{`Hello: ${cookies.get("username")}`}</h1> : null
             }
+            <h2>{`Room  ID: ${roomId}`}</h2>
             {
                 messages.map( message =>{
 
