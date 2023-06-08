@@ -7,10 +7,20 @@
     io.on("connection", (socket) =>{
         console.log(socket.id);
 
-        socket.on("Login", (username) => console.log("The user with socket id: " + socket.id + "logged on as: " + username));
 
-        socket.on("sendMessage", ({username, message}) =>{
-            console.log("got message: " + username + " " + message);
-            socket.broadcast.emit("recieveMessage", (username, message));
+        socket.on("Login", (username, roomNum) => {
+            if(roomNum != 0){
+                //add this person to a room
+                socket.join(roomNum);
+            }
+            console.log("The user with socket id: " + socket.id + "logged on as: " + username)
+        });
+
+        socket.on("sendMessage", (message, roomId) =>{
+            console.log("got message: " + message.username + " " + message.message + " " + roomId);
+            if(roomId == 0)
+                socket.broadcast.emit("recieveMessage", (message.username, message.message));
+            else 
+                socket.to(roomId).emit("recieveMessage", (message.username, message.message));
         })
     });
