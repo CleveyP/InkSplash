@@ -7,11 +7,12 @@
     io.on("connection", (socket) =>{
         console.log(socket.id);
 
-
         socket.on("Login", (username, roomNum) => {
-            if(roomNum != 0){
+            if(roomNum != ""){
                 //add this person to a room
                 socket.join(roomNum);
+                socket.emit("userJoined", username, roomNum);
+                console.log(username + " " + roomNum);
             }
             console.log("The user with socket id: " + socket.id + "logged on as: " + username)
         });

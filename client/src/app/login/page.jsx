@@ -1,14 +1,16 @@
+
+"use client"
+
 import React, {useState} from "react";
 import "./login.css";
-import {socket} from "../../socket";
-import {useNavigate} from "react-router-dom";
-import Cookies from 'universal-cookie';
- 
-export const cookies = new Cookies();
+import { socket } from "@/socket";
+import { useRouter } from 'next/navigation'
 
-export const Login = () =>{
 
-    const navigate = useNavigate();
+export default function Login(){
+
+    const router = useRouter();
+
     const [username, setUsername] = useState("");
     const [roomNum, setRoomNum] = useState(0);
 
@@ -21,15 +23,13 @@ export const Login = () =>{
 
     const handleSubmit = () =>{
         socket.emit("Login", username, roomNum);
-        cookies.set("username", username);
-        cookies.set("roomNumber", roomNum);
-        navigate(`/game?roomId=${roomNum}`);
+        router.push(`/`);
     }
 
     return (
         <div className="Login">
             <input required type='text' className="username-input" value={username} onChange={(e) => handleChange(e)} />
-            <input type="number" className="room-input" value = {roomNum} onChange={e => handleRoomChange(e)} />
+            <input type="text" className="room-input" value = {roomNum} onChange={e => handleRoomChange(e)} />
             <button className="submit-btn"
             onClick={handleSubmit}
             >Login</button>
