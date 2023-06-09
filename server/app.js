@@ -39,12 +39,39 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on("joinRoom", (username, roomNum, isPrivate, passcode) =>{
+    socket.on("createRoom", (username,  isPrivate, passcode) =>{
+        //generate room number
+        let roomNum = ( publicRooms.length  + privateRooms.length + 1);
         if(isPrivate){
+            if(passcode == ""){
+                socket.emit("noPasscodeError");
+            }
+           
+            //create the room
+            let newRoom = new Room(roomNum, true, passcode);
+            //add the player to the room
+            newRoom.addPlayer(username, socket.id);
+            //add the room to the private rooms
+            privateRooms.set(roomNum, newRoom);
+        }
+        else{
+            //the room is public
+          
+            //create the room
+            let newRoom = new Room(roomNum, false);
+            //add the player to the room
+            newRoom.addPlayer(username, socket.id);
+            //add the room to the private rooms
+            publicRooms.set(roomNum, newRoom);
+        }
+    });
+    socket.on("joinRoom", (username, roomNum, passcode) =>{
+        if(passcode != ""){ //room is private
         //check if the room exists
         if(privateRooms.has(roomNum)){
             //check if the passcode is correct
             const room = privateRooms.get(roomNum);
+
             if(room.passcode == passcode){
                 //create the user object
                 const newUser = User(username, socket.id);
@@ -60,7 +87,7 @@ io.on("connection", (socket) => {
             }
         }
     }
-    else{
+    else if(passcode == "" && roomNum!=""){
         //room is public
          if(publicRooms.has(roomNum)){
             const room = publicRooms.get(roomNum);
@@ -69,6 +96,22 @@ io.on("connection", (socket) => {
             socket.to(roomNum).emit("recieveMessage", {message: `${username} has entered the room! Only ${5 - room.numPlayers} spots are left.`});
             //possibly render a card component that shows the user
         }
+    }
+    else{// the user wants to join a random room
+        //find the public room that has the most players in it
+        for (let [key, value] of publicRooms) {
+            console.log(key + " = " + value);
+            if(value.numPlayers < 5 ){
+                //found a room put the user in that room
+                const room = publicRooms.get(value.roomId);
+                const newUser = User(username, socket.id);
+                room.addPlayer(newUser);
+                socket.to(roomNum).emit("recieveMessage", {message: `${username} has entered the room! Only ${5 - room.numPlayers} spots are left.`});
+                //possibly render a card component that shows the user
+                return;
+            }
+        }
+            socket.emit("noRoomsAvailable");
     }
     });
 });
