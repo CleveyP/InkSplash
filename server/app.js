@@ -4,6 +4,10 @@ const io = require("socket.io")(8080, {
     }
 });
 
+const {publicRooms, privateRooms} = require("./rooms");
+const {Room} = require("./Classes/RoomClass");
+const {User} = require("./Classes/UserClass")
+
 io.on("connection", (socket) => {
 
     console.log(socket.id);
@@ -16,31 +20,55 @@ io.on("connection", (socket) => {
             //add this person to a room
             user_name = username;
             room_Num = roomNum;
-            console.log(user_name + " " + room_Num)
             socket.emit("userConnected");
             socket.join(roomNum);
         }
-        console.log("The user with socket id: " + socket.id + "logged on as: " + username)
     });
 
     socket.on("getUserData", () => {
-        //console.log("AHEL")
-
         socket.emit("userJoined", user_name, room_Num);
-        //console.log(user_name + " " + room_Num)
-
-    })
-
+    });
 
     socket.on("sendMessage", (message, roomId) => {
         console.log("got message: " + message.username + " " + message.message + " " + roomId);
-        if (roomId == 0) {
-            console.log("EHEasdasdasdHEH")
+        if (roomId == 0) { //user is not in any one devoted room
             socket.broadcast.emit("recieveMessage", (message.username, message.message));
-
-        }else{
-            console.log(message.username + " 11111111 " + roomId + " " + message.message);
+        }
+        else{
             socket.to(roomId).emit("recieveMessage", (message));
         }
-    })
+    });
+
+    socket.on("joinRoom", (username, roomNum, isPrivate, passcode) =>{
+        if(isPrivate){
+        //check if the room exists
+        if(privateRooms.has(roomNum)){
+            //check if the passcode is correct
+            const room = privateRooms.get(roomNum);
+            if(room.passcode == passcode){
+                //create the user object
+                const newUser = User(username, socket.id);
+                //put the user in the private room
+                room.addPlayer(newUser);
+                //tell the room that the new player has entered
+                socket.to(roomNum).emit("recieveMessage", {message: `${username} has entered the room! Only ${5 - room.numPlayers} spots are left.`});
+                //possibly render a card component that shows the user
+            }
+            else{
+                socket.emit("privateRoomReject");
+                return;
+            }
+        }
+    }
+    else{
+        //room is public
+         if(publicRooms.has(roomNum)){
+            const room = publicRooms.get(roomNum);
+            const newUser = User(username, socket.id);
+            room.addPlayer(newUser);
+            socket.to(roomNum).emit("recieveMessage", {message: `${username} has entered the room! Only ${5 - room.numPlayers} spots are left.`});
+            //possibly render a card component that shows the user
+        }
+    }
+    });
 });
