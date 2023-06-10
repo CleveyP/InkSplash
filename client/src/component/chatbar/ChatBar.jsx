@@ -6,10 +6,6 @@ import { socket } from "../../socket";
 export const ChatBar = (props) => {
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState("");
-    const [roomId, setRoomId] = useState("");
-    const [username, setUsername] = useState("");
-    const [otherUserName, setOtherUserName] = useState("");
-
 
     useEffect(() => {
 
@@ -17,13 +13,13 @@ export const ChatBar = (props) => {
             console.log("connected!");
         });
 
-        socket.emit("getUserData");
+        // socket.emit("getUserData");
 
-        socket.on("userJoined", (username, roomNum) => {
-            setRoomId(roomNum);
-            setUsername(username);
-            console.log(username + " " + roomNum);
-        })
+        // socket.on("userJoined", (username, roomNum) => {
+        //     setRoomId(roomNum);
+        //     setUsername(username);
+        //     console.log(username + " " + roomNum);
+        // })
 
         socket.on("recieveMessage", (message) => {
             console.log(message.username + " HHHHHH " + message.message);
@@ -32,11 +28,11 @@ export const ChatBar = (props) => {
         
         return () => {
             socket.off("connect");
-            socket.off("userJoined");
+            //socket.off("userJoined");
         };
 
 
-    }, [roomId, text, messages, username]);
+    }, [text, messages]);
 
     const handleChange = (e) => {
         setText(e.target.value);
