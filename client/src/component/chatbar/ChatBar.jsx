@@ -48,9 +48,9 @@ export const ChatBar = (props) => {
     return (
         <div className="chat-bar" >
             {
-                <h1>{`Hello: ${username}`}</h1>
+                <h1>{`Hello: ${props.username}`}</h1>
             }
-            <h2>{`Room  ID: ${roomId}`}</h2>
+            <h2>{`Room  ID: ${props.roomId}`}</h2>
             {
                 messages.map(message => {
                     return <Message name={message.username} message={message.message}  />
