@@ -14,6 +14,10 @@ class Room{
         this.roomId=roomId;
         this.lobby = [];
         this.numPlayers=0;
+        this.chooseWord();
+    }
+
+    chooseWord() {
         let randomIndex =  (Math.random() * 2000 ) % dictionary.length;
         this.word = dictionary[randomIndex];
         //update the dictionary
