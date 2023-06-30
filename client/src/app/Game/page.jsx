@@ -27,35 +27,17 @@ export default function Game(props) {
         // });
 
         socket.emit("arrivedAtGame");
-
+        
         socket.on("recieveRoom", (room) => {
             if(room.room.roomId === roomId || roomId === "") {
                 console.log(JSON.stringify(room.room)); 
-                console.log(room.socketId + " HHAHHA")
                 setMembers([...room.room.lobby]);
                 setUsername(room.username);
                 setRoomId(room.room.roomId);
+                
             }
 
         })
-
-        // socket.emit("getUserData");
-
-        // socket.on("userJoined", (username, roomNum) => {
-        //     setRoomId(roomNum);
-        //     setUsername(username);
-        //     console.log(username + " " + roomNum);
-        // })
-
-        socket.on("recieveMessage", (message) => {
-            console.log(message.username + " HHHHHH " + message.message);
-            setMessages([...messages, message]);
-        })
-        
-        return () => {
-            //socket.off("connect");
-            //socket.off("userJoined");
-        };
 
 
     }, []);

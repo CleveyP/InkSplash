@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { socket } from "../../socket";
-
+import "./chatbar.css";
 export const ChatBar = (props) => {
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState("");
@@ -23,25 +23,21 @@ export const ChatBar = (props) => {
 
         socket.on("recieveMessage", (message) => {
             console.log(message.username + " HHHHHH " + message.message);
-            setMessages([...messages, message]);
+            setMessages(messages => [...messages, message]);
         })
         
-        return () => {
-            socket.off("connect");
-            //socket.off("userJoined");
-        };
 
-
-    }, [text, messages]);
+    }, []);
 
     const handleChange = (e) => {
         setText(e.target.value);
     }
 
     const sendMessage = () => {
-        const newMessage = { username: username, message: text };
+        const newMessage = {username: props.username,  message: text };
         setMessages([...messages, newMessage]);
-        socket.emit("sendMessage", newMessage, roomId);
+        socket.emit("sendMessage", newMessage, props.roomId);
+        setText("");
     }
 
 
@@ -53,7 +49,7 @@ export const ChatBar = (props) => {
             <h2>{`Room  ID: ${props.roomId}`}</h2>
             {
                 messages.map(message => {
-                    return <Message name={message.username} message={message.message}  />
+                    return <Message name={message.username} message={message.message} isAdmin={message.username == "ADMIN" ? true : false} />
                 })
             }
             <input className="chat-input" value={text} onChange={e => handleChange(e)} />
@@ -63,10 +59,11 @@ export const ChatBar = (props) => {
 }
 
 const Message = (props) => {
-
+    let messageParagraph =  (props.isAdmin) ?  <p className="message-p isAdmin">{props.name}: {props.message}</p> :
+    <p className="message-p">{props.name} : {props.message}</p>;
     return (
-        <div className="mesasdsage">
-            <p className="aaa">{props.name}: {props.message}</p>
+        <div className="message-box">
+            {messageParagraph}
         </div>
     )
 }

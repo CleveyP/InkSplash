@@ -4,34 +4,19 @@ const io = require("socket.io")(8080, {
     }
 });
 
-const { publicRooms, privateRooms } = require("./rooms");
+
 const { Room } = require("./Classes/RoomClass");
 const { User } = require("./Classes/UserClass");
+
+
+//this hashmap contains all active rooms
+let publicRooms = new Map();
+let privateRooms = new Map();
 
 let globalRoom;
 let user_name;
 
 io.on("connection", (socket) => {
-
-
-
-    console.log(socket.id + " 11111111111111111111111111111");
-
-    // let room_Num = "";
-
-    // socket.on("play", (username, roomNum) => {
-    //     if (roomNum != "") {
-    //         //add this person to a room
-    //         // user_name = username;
-    //         // room_Num = roomNum;
-    //         // socket.emit("userConnected");
-    //         socket.join(roomNum);
-    //     }
-    // });
-
-    // socket.on("getUserData", () => {
-    //     socket.emit("userJoined", user_name, room_Num);
-    // });
 
     socket.on("sendMessage", (message, roomId) => {
         console.log("got message: " + message.username + " " + message.message + " " + roomId);
@@ -39,6 +24,7 @@ io.on("connection", (socket) => {
             socket.broadcast.emit("recieveMessage", (message.username, message.message));
         }
         else {
+            console.log("sending message to non defualt room: " + roomId + "message is: " + message.message);
             socket.to(roomId).emit("recieveMessage", (message));
         }
     });
@@ -46,10 +32,10 @@ io.on("connection", (socket) => {
 
     socket.on("createRoom", (username, isPrivate, passcode) => {
 
-        console.log("TRYNNA CREATE ROOM")
+        console.log("TRYNNA CREATE ROOM");
 
         //generate room number
-        let roomNum = (publicRooms.size + privateRooms.size + 1);
+        let roomNum = (publicRooms.size + privateRooms.size + 1).toString(10);
 
         let newRoom;
 
@@ -64,39 +50,35 @@ io.on("connection", (socket) => {
 
             newRoom.addPlayer(username, socket.id);
             //add the room to the private rooms
-            privateRooms.set(roomNum, newRoom);
+            privateRooms.set(roomNum.toString(10), newRoom);
         }
         else {
             //the room is public
-            console.log("THE ROOM APPREAS TO BE PUBLICS")
+            console.log("creating public room with id: " + roomNum);
 
             //create the room
             newRoom = new Room(roomNum, false);
             //add the player to the room
             newRoom.addPlayer(username, socket.id);
             //add the room to the private rooms
-            publicRooms.set(roomNum, newRoom);
+            publicRooms.set(roomNum.toString(10), newRoom);
         }
-
         socket.join(roomNum);
-
         globalRoom = newRoom;
         user_name = username;
 
     });
-
+    //emitted when user creates a game
     socket.on('arrivedAtGame', () => {
-        console.log(user_name + " THIS IS A USER NAME")
+      
 
         //socket.to(globalRoom.roomId).emit("recieveRoom", { room: globalRoom, username: user_name });
         io.to(socket.id).emit("recieveRoom", { room: globalRoom, username: user_name, socketId: socket.id });
 
-        console.log("PLUTOS IDEA IS WORKING?")
-        console.log(JSON.stringify(globalRoom) + " THIS IS NEW ROOM")
+        console.log([...publicRooms.entries()] + " THIS IS NEW ROOM")
     })
 
     socket.on("joinRoom", (username, roomNum, passcode) => {
-
         let room;
         if (passcode) { //room is private
             //check if the room exists
@@ -109,8 +91,13 @@ io.on("connection", (socket) => {
                     const newUser = User(username, socket.id);
                     //put the user in the private room
                     room.addPlayer(newUser);
+                    //set the placeholder room and username
+                    globalRoom=room;
+                    user_name=username;
+                    //have the new user join the room socket
+                    socket.join(roomNum);
                     //tell the room that the new player has entered
-                    socket.to(roomNum).emit("recieveMessage", { message: `${username} has entered the room! Only ${5 - room.numPlayers} spots are left.` });
+                    socket.to(roomNum).emit("recieveMessage", {username: "ADMIN", message: `${username} has entered the room! Only ${5 - room.numPlayers} spots are left.` });
                     //possibly render a card component that shows the user
                 }
                 else {
@@ -120,14 +107,20 @@ io.on("connection", (socket) => {
             }
         }
         else if (!passcode && roomNum) {
+            console.log(username + " is joining public room with room num "+ roomNum);
             //room is public and user wants to join custom room
+           
             if (publicRooms.has(roomNum)) {
                 room = publicRooms.get(roomNum);
-                const newUser = User(username, socket.id);
+                const newUser = new User(username, socket.id);
                 room.addPlayer(newUser);
-                socket.to(roomNum).emit("recieveMessage", { message: `${username} has entered the room! Only ${5 - room.numPlayers} spots are left.` });
+                console.log(...room.lobby);
+                globalRoom=room;
+                user_name=username;
+                socket.join(roomNum);
+                socket.to(roomNum).emit("recieveMessage", { username: "ADMIN", message: `${username} has entered the room! Only ${5 - room.numPlayers} spots are left.` });
                 //possibly render a card component that shows the user
-                //socket.emit("createRoomEvent" (username));
+            
             }
         }
         else {// the user wants to join a random room
@@ -139,6 +132,9 @@ io.on("connection", (socket) => {
                     room = publicRooms.get(value.roomId);
                     const newUser = User(username, socket.id);
                     room.addPlayer(newUser);
+                    globalRoom=room;
+                    user_name=username;
+                    socket.join(roomNum);
                     socket.to(roomNum).emit("recieveMessage", { message: `${username} has entered the room! Only ${5 - room.numPlayers} spots are left.` });
                     //possibly render a card component that shows the user
                     //socket.emit("playEvent" (username));

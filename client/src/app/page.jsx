@@ -24,22 +24,18 @@ const Home = () => {
     const handlePlay = () => {
         socket.emit("joinRoom", (username))
         router.push('/Game' );
-
-        // router.push({
-        //     pathname: '/Game',
-        //     query: { actions: "play", username: username, roomId: roomNum }
-        // }, "/Game");
+        //change the view component to the room component
     }
 
     const handleCreateRoom = () => {
         socket.emit("createRoom", username, isPrivate, passcode);
-        router.push('/Game' );
+        router.push('/Game' ); //get rid of it
     }
 
 
     const handleJoinRoom = () => {
-        socket.emit("joinRoom", username, roomId, passcode);        
-        router.push('/Game' );
+        socket.emit("joinRoom", username, roomNum, passcode);        
+        router.push('/Game' ); //get rid of it
     }
 
 
