@@ -30,7 +30,7 @@ io.on("connection", (socket) => {
             //get the room from the public or private room map
             let room = privateRooms.get(roomId) || publicRooms.get(roomId);
             if(!room){
-                console.log("could not locate the room in either of the rooms maps.")
+                console.log("could not locate the room in either of the rooms maps.");
             }
             //check the word for correctness/ display the message if it is an incorrect word guess or if it is a message and not a guess
             room.checkWord(message.message, message.username);
@@ -42,11 +42,9 @@ io.on("connection", (socket) => {
 
     socket.on("createRoom", (username, isPrivate, passcode) => {
 
-        console.log("TRYNNA CREATE ROOM");
-
         //generate room number
-        let roomNum = (publicRooms.size + privateRooms.size + 1).toString(10);
-
+        let roomNum = (publicRooms.size + privateRooms.size + 1).toString();
+      
         let newRoom;
 
         if (isPrivate) {
@@ -57,10 +55,10 @@ io.on("connection", (socket) => {
             //create the room
             newRoom = new Room(roomNum, true, passcode);
             //add the player to the room
-
-            newRoom.addPlayer(username, socket.id);
+            const newUser = new User(username, socket.id);
+            newRoom.addPlayer(newUser);
             //add the room to the private rooms
-            privateRooms.set(roomNum.toString(10), newRoom);
+            privateRooms.set(roomNum, newRoom);
         }
         else {
             //the room is public
@@ -69,9 +67,10 @@ io.on("connection", (socket) => {
             //create the room
             newRoom = new Room(roomNum, false);
             //add the player to the room
-            newRoom.addPlayer(username, socket.id);
-            //add the room to the private rooms
-            publicRooms.set(roomNum.toString(10), newRoom);
+            const newUser = new User(username, socket.id);
+            newRoom.addPlayer(newUser);
+            //add the room to the public rooms
+            publicRooms.set(roomNum, newRoom);
         }
         socket.join(roomNum);
         globalRoom = newRoom;
@@ -85,7 +84,7 @@ io.on("connection", (socket) => {
         //socket.to(globalRoom.roomId).emit("recieveRoom", { room: globalRoom, username: user_name });
         io.to(socket.id).emit("recieveRoom", { room: globalRoom, username: user_name, socketId: socket.id });
 
-        console.log([...publicRooms.entries()] + " THIS IS NEW ROOM")
+        console.log([...publicRooms.entries()] + " THIS IS NEW ROOM");
     })
 
     socket.on("joinRoom", (username, roomNum, passcode) => {
@@ -105,10 +104,11 @@ io.on("connection", (socket) => {
                     globalRoom=room;
                     user_name=username;
                     //have the new user join the room socket
-                    socket.join(roomNum);
+                    socket.join(roomNum.toString());
                     //tell the room that the new player has entered
                     socket.to(roomNum).emit("recieveMessage", {username: "ADMIN", message: `${username} has entered the room! Only ${5 - room.numPlayers} spots are left.` });
-                    //possibly render a card component that shows the user
+                    //update the room that every preexisting room member has to now include the new player
+                    socket.to(roomNum).emit("updateRoom", room);
                 }
                 else {
                     socket.emit("privateRoomReject");
@@ -129,8 +129,8 @@ io.on("connection", (socket) => {
                 user_name=username;
                 socket.join(roomNum);
                 socket.to(roomNum).emit("recieveMessage", { username: "ADMIN", message: `${username} has entered the room! Only ${5 - room.numPlayers} spots are left.` });
-                //possibly render a card component that shows the user
-            
+               //update the room that every preexisting room member has to now include the new player
+                socket.to(roomNum).emit("updateRoom", room);
             }
         }
         else {// the user wants to join a random room
@@ -161,6 +161,25 @@ io.on("connection", (socket) => {
 
     });
 
+    socket.on("startGame", (roomId) =>{
+        //find the room in the maps
+        let room = publicRooms.get(roomId) || privateRooms.get(roomId);
+        if(!room){
+            //should never happen 
+            console.log("could not find the room in either of the room maps.");
+            socket.to(roomId).emit("recieveMessage", {username: "ADMIN", message: "unknown error occurred starting game."})
+            return;
+        }
+        //make sure that the room has at least two players in it
+        if(room.numPlayers < 2){
+            console.log("not enough players to start game.");
+            io.to(roomId).emit("recieveMessage", {username: "ADMIN", message: "Not enough players to start the game"});
+            return;
+        }
+        //call its start game function
+        room.startGame();
+    })
+
 
 
     //--------------------------------------------ROOM CLASS--------------------------------------------------------------------------------
@@ -181,21 +200,26 @@ class Room{
         this.dictionary = dictionary;
         this.isPrivate=isPrivate;
         this.passcode = (isPrivate) ? passCode : "pubic";
-        this.roomId=roomId;
+        this.roomId=roomId.toString();
         this.lobby = [];
         this.numPlayers=0;
         this.placement=0;
         this.numRounds=3;
         this.currentRound=1;
-        this.ActiveIndex=0;
+        this.activeIndex=0;
         this.activePlayer=null;
         this.word="";
+    }
+
+    addPlayer(user){
+        this.lobby.push(user);
+        this.numPlayers++;
     }
 
 
     //return random word from the dictionary of words
     chooseWord() {
-        let randomIndex =  (Math.random() * 2000 ) % dictionary.length;
+        let randomIndex =  (Math.random() * 2000 ) % (dictionary.length-1);
         //get the random word
         let res = dictionary[randomIndex];
         //update the dictionary
@@ -204,10 +228,7 @@ class Room{
         return res;
     }
 
-    addPlayer(user){
-        this.lobby.push(user);
-        this.numPlayers++;
-    }
+   
     //check if the message is the word to be guessed. returns true if correct false if it is incorrect.
     checkWord(guess, username){
         
@@ -229,6 +250,7 @@ class Room{
     }
 
     //start a new game with all the players in the lobby
+    //https://stackoverflow.com/questions/19714453/calling-settimeout-in-a-loop-not-working-as-expected check this out if it doesnt work as expected
     startGame(){
         //display that this is the first round
         socket.to(this.roomId).emit("updateRoundNumber", this.currentRound); //TODO create listener in frontend for this event
@@ -237,14 +259,14 @@ class Room{
         for(let i =1; i <= this.numRounds; i++){
             //start the current round and let everyone have a turn drawing
             for(let j = 0; j < this.numPlayers; j++){
-                startTurn();
+                this.startTurn(); // < might need to be wrapped in self calling function, check link above
             }
             //after everyone has gone, the round ends
             this.endRound();
             
         }
         //after all rounds have finished, the game ends
-        endGame();
+        this.endGame();
     }
 
     endGame(){
@@ -280,15 +302,17 @@ class Room{
         this.currentRound=1;
         this.ActiveIndex=0;
         this.activePlayer=null;
+        this.word = "";
 
     }
     getActivePlayer(){
         //go to next active player
-        this.activeIndex = (this.activeIndex+1) % this.numPlayers;
+        this.activeIndex = (this.activeIndex+1) % (this.numPlayers);
+        console.log(" the active index is: " + this.activeIndex);
         //set the player to be a drawer
-        this.lobby[activeIndex].isDrawer = true;
+        this.lobby[this.activeIndex].isDrawer = true;
         //update the class's active player field.
-        this.activePlayer =  this.lobby[activeIndex];
+        this.activePlayer =  this.lobby[this.activeIndex];
     }
 
     startTurn(){
@@ -317,7 +341,7 @@ class Room{
           
            //...waiting
 
-           //stop  listening for the user to select a word as they have run out of time
+           //stop  listening for the user to select a word -- as they have run out of time to select one
            socket.off("selectedWord");
 
            recieveWordChoice(wordChoice);
