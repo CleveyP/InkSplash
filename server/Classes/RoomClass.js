@@ -20,11 +20,12 @@ class Room{
         this.placement=0;
         this.numRounds=3;
         this.currentRound=1;
-        this.chooseWord();
         this.ActiveIndex=0;
         this.activePlayer=null;
     }
 
+
+    //return random word from the dictionary of words
     chooseWord() {
         let randomIndex =  (Math.random() * 2000 ) % dictionary.length;
         //get the random word
@@ -50,6 +51,8 @@ class Room{
             return false;
         }
     }
+
+    //start a new game with all the players in the lobby
     startGame(){
         for(let i =1; i <= this.numRounds; i++){
             //start the first round
@@ -91,6 +94,11 @@ class Room{
             
         }
         //reset all game state in the class instance
+        this.placement=0;
+        this.currentRound=1;
+        this.ActiveIndex=0;
+        this.activePlayer=null;
+
 
     }
     getActivePlayer(){
