@@ -8,7 +8,7 @@ const io = require("socket.io")(8080, {
 const { User } = require("./Classes/UserClass");
 
 
-//this hashmap contains all active rooms
+//these hashmap contains all active rooms. The keys are the room numbers, the values are the corresponding room objects
 let publicRooms = new Map();
 let privateRooms = new Map();
 
@@ -29,6 +29,9 @@ io.on("connection", (socket) => {
             console.log("sending message to non defualt room: " + roomId + "message is: " + message.message);
             //get the room from the public or private room map
             let room = privateRooms.get(roomId) || publicRooms.get(roomId);
+            if(!room){
+                console.log("could not locate the room in either of the rooms maps.")
+            }
             //check the word for correctness/ display the message if it is an incorrect word guess or if it is a message and not a guess
             room.checkWord(message.message, message.username);
               
