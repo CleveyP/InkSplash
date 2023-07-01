@@ -12,9 +12,12 @@ const { User } = require("./Classes/UserClass");
 let publicRooms = new Map();
 let privateRooms = new Map();
 
+//placeholders that hold the name and room of someone switching from home page to game page
 let globalRoom;
 let user_name;
 
+//all socket io code must go inside here 
+//TODO: detect when player leaves room and handle this.
 io.on("connection", (socket) => {
 
     socket.on("sendMessage", (message, roomId) => {
@@ -224,14 +227,20 @@ class Room{
 
     //start a new game with all the players in the lobby
     startGame(){
+        //display that this is the first round
+        socket.to(this.roomId).emit("updateRoundNumber", this.currentRound); //TODO create listener in frontend for this event
+
+        //for every round
         for(let i =1; i <= this.numRounds; i++){
-            //start the first round
+            //start the current round and let everyone have a turn drawing
             for(let j = 0; j < this.numPlayers; j++){
                 startTurn();
             }
+            //after everyone has gone, the round ends
             this.endRound();
             
         }
+        //after all rounds have finished, the game ends
         endGame();
     }
 
@@ -263,12 +272,11 @@ class Room{
             //display these winning names to everyone in the room.
             socket.to(this.roomId).emit("displayWinners", winnersNames); //TODO create listener in frontend for this event
         }
-        //reset all game state in the class instance
+        //reset game state in the room instance
         this.placement=0;
         this.currentRound=1;
         this.ActiveIndex=0;
         this.activePlayer=null;
-
 
     }
     getActivePlayer(){
@@ -294,19 +302,31 @@ class Room{
         socket.to(this.activePlayer.socketId).emit("wordPrompt", words); // TODO: create the listener in frontend
         
         let wordChoice = words[1];
+
+          //wait for user to emit a selectWord event (changing the word from the default) for 10 seconds
+           //TODO: create an event emitter selectedWord in frontend that sends the selected word back
+        socket.on("selectedWord", (word) =>{
+            wordChoice = word;
+           });
+
         setTimeout(() => {
-           //wait for user to emit a selectWord event and change the word
+         
+          
+           //...waiting
+
+           //stop  listening for the user to select a word as they have run out of time
+           socket.off("selectedWord");
 
            recieveWordChoice(wordChoice);
            //start the turn timer
            setTimeout(() => {
               //allow player to draw
               //listen for correct guesses
-             
+             //after the timer
+             //display the word to everyone
+             displayWord(this.word);
            }, 1000 * 60 * 2); //a turn lasts 2 minutes
-          //after the timer
-          //display the word to everyone
-          displayWord(this.word);
+          
         }, 1000 * 10); //wait for 10 seconds
     }
 
