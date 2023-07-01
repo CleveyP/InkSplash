@@ -22,10 +22,6 @@ export default function Game(props) {
 
     useEffect(() => {
 
-        // socket.on("connect", () => {
-        //     console.log("connected!");
-        // });
-
         socket.emit("arrivedAtGame");
         
         socket.on("recieveRoom", (room) => {
@@ -37,12 +33,20 @@ export default function Game(props) {
                 
             }
 
-        })
+        });
+
+
+        socket.on("updateRoom", (room) =>{
+            setMembers([...room.lobby]);
+        });
 
 
     }, []);
     
 
+    const handleStartGame = () =>{
+        socket.emit("startGame", roomId);
+    }
 
 
     return (
@@ -56,7 +60,7 @@ export default function Game(props) {
                     {members.map((member) => {
 
                         //Generate a random image for every member
-                        let randomIndex = ((Math.floor(Math.random() * 100))) % imageList.length - 1;
+                        let randomIndex = ((Math.floor(Math.random() * 100))) % (imageList.length - 1);
                         console.log(randomIndex + " RANDO");
                         let imageURL = imageList[randomIndex];
                         imageList.splice(randomIndex, 1);
@@ -69,6 +73,7 @@ export default function Game(props) {
                     )}
                 </div>
                 <ChatBar username={username} roomId ={roomId} />
+                <button className="start-game-button" onClick={handleStartGame}>Start Game</button>
 
             </div>
 
