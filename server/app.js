@@ -235,7 +235,8 @@ class Room{
         if(this.word == ""){
             //the word has not been set so we are between turns or rounds
             //in which case, treat the word as not a guess but a message and display it
-            socket.to(this.roomId).emit("recieveMessage", {username: username, message: guess});
+           //sends to everyone INCLUDING sender
+            io.sockets.in(this.roomId).emit('recieveMessage', {username: username, message: guess});
             return false;
         }
         if(guess == this.word){

@@ -35,7 +35,7 @@ export const ChatBar = (props) => {
 
     const sendMessage = () => {
         const newMessage = {username: props.username,  message: text };
-        setMessages([...messages, newMessage]);
+       // setMessages([...messages, newMessage]);
         socket.emit("sendMessage", newMessage, props.roomId);
         setText("");
     }
