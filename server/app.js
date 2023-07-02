@@ -231,6 +231,7 @@ class Room{
 
    
     //check if the message is the word to be guessed. returns true if correct false if it is incorrect.
+    //since this.word is not synchronized with the time, then we might need to pass this function the correct word as well
     checkWord(guess, username){
         
         if(this.word == ""){
@@ -258,17 +259,17 @@ class Room{
         socket.to(this.roomId).emit("updateRoundNumber", this.currentRound); //TODO create listener in frontend for this event
 
         //for every round
-        for(let i =1; i <= this.numRounds; i++){
+        for(let round =0; round < this.numRounds; round++){
             //start the current round and let everyone have a turn drawing
-            for(let j = 0; j < this.numPlayers; j++){
-                this.startTurn(); // < might need to be wrapped in self calling function, check link above
+            for(let turn = 0; turn < this.numPlayers; turn++){
+                    this.startTurn(round, turn); // < might need to be wrapped in self calling function, check link above
+                }
             }
             //after everyone has gone, the round ends
             this.endRound();
             
-        }
-        //after all rounds have finished, the game ends
-        this.endGame();
+            //after all rounds have finished, the game ends
+            this.endGame();
     }
 
     endGame(){
@@ -316,47 +317,50 @@ class Room{
         this.activePlayer =  this.lobby[this.activeIndex];
     }
 
-    startTurn(){
-       
+    startTurn(round, turnTime){
+        let roundTime = this.numPlayers * 1000 * 2 * round;
+       setTimeout(() => {
         //select active player
-        this.getActivePlayer();
-        console.log("starting turn where "+ this.activePlayer.name + " is the active player")
-        //give player 3 words to choose from
-        let words = [];
-        words.push(this.chooseWord());
-        words.push(this.chooseWord());
-        words.push(this.chooseWord());
-        //emit this word choice to frontend
-        socket.to(this.activePlayer.socketId).emit("wordPrompt", words); // TODO: create Modal in frontend that opens for this socket event
-        
-        let wordChoice = words[1];
-          //wait for user to emit a selectWord event (changing the word from the default) for 10 seconds
-           //TODO: create an event emitter selectedWord in frontend that sends the selected word back
-        socket.on("selectedWord", (word) =>{
-            wordChoice = word;
-           });
+            this.getActivePlayer();
+            console.log("starting turn where "+ this.activePlayer.name + " is the active player and the date is: " + Date.now() )
+            //give player 3 words to choose from
+            let words = [];
+            words.push(this.chooseWord());
+            words.push(this.chooseWord());
+            words.push(this.chooseWord());
+            //emit this word choice to frontend
+            socket.to(this.activePlayer.socketId).emit("wordPrompt", words); // TODO: create Modal in frontend that opens for this socket event
+            
+            let wordChoice = words[1];
+            //wait for user to emit a selectWord event (changing the word from the default) for 10 seconds
+            //TODO: create an event emitter selectedWord in frontend that sends the selected word back
+            socket.on("selectedWord", (word) =>{
+                wordChoice = word;
+            });
 
-        setTimeout(() => {
-         
-          
-           //...waiting
+            setTimeout(() => {
+            
+            
+            //...waiting
 
-           //stop  listening for the user to select a word -- as they have run out of time to select one
-           socket.off("selectedWord", (word) =>{
-            wordChoice = word;
-           });
+            //stop  listening for the user to select a word -- as they have run out of time to select one
+            socket.off("selectedWord", (word) =>{
+                wordChoice = word;
+            });
 
-           this.recieveWordChoice(wordChoice);
-           //start the turn timer
-           setTimeout(() => {
-              //allow player to draw
-              //listen for correct guesses
-             //after the timer
-             //display the word to everyone
-             displayWord(this.word);
-           }, 1000 * 60 * 2); //a turn lasts 2 minutes
-          
-        }, 1000 * 10); //wait for 10 seconds
+            this.recieveWordChoice(wordChoice);
+            //start the turn timer
+            setTimeout(() => {
+                //allow player to draw
+                //listen for correct guesses
+                //after the timer
+                //display the word to everyone
+                this.displayWord(wordChoice);
+            },  1000 *  60 * 2); //a turn lasts 2 minutes
+            
+            }, 1000 * 10); //wait for 10 seconds 
+       }, 2* 1000  * turnTime + roundTime); //start this function at the right time. (in 2:30 intervals. So turn 1 starts at 0 turn 2 starts at 2:30)
+       
     }
 
     displayWord(word){
