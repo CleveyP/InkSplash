@@ -320,9 +320,11 @@ class Room{
     }
 
     startTurn(round, turnTime){
-        let roundTime = this.numPlayers * 1000 * 2 * round;
+        //duration of turn
+        let durationOfTurn = 1000* 60 + 1000 * 10; //1:10 is one turn including guessing phase and word selection phase
+        let roundTime = this.numPlayers * durationOfTurn * round; //duration of a turn times the number of turns in a round
        setTimeout(() => {
-        //select active player
+            //select active player
             this.getActivePlayer();
             console.log("starting turn where "+ this.activePlayer.name + " is the active player and the date is: " + Date.now() )
             //give player 3 words to choose from
@@ -331,31 +333,32 @@ class Room{
             words.push(this.chooseWord());
             words.push(this.chooseWord());
             //emit this word choice to frontend
-            socket.to(this.activePlayer.socketId).emit("wordPrompt", words); // TODO: create Modal in frontend that opens for this socket event
-            
+            io.to(this.activePlayer.socketId).emit("wordPrompt", words); 
+            console.log("The active player at this time is: " + this.activePlayer.name);
             let wordChoice = words[1];
             //wait for user to emit a selectWord event (changing the word from the default) for 10 seconds
-            socket.on("selectedWord", (word, roomId) =>{
-                console.log("inside!!!");
-                if(roomId != this.roomId){
-                    return;
-                }
+            socket.once("selectedWord", (word, roomId) =>{
+                console.log("inside selectedWord socket handler");
+                // if(roomId != this.roomId){
+                //     return;
+                // }
                 wordChoice = word;
+                this.word = word;
                 console.log("oh shit it worked???");
             });
             setTimeout(() => {
             
-            
-            //...waiting
+            //...waiting for selected word
 
             //stop waiting for the user to select a word.
-            socket.off("selectedWord", (word, roomId) =>{
-                if(roomId != this.roomId){
-                    return;
-                }
-                wordChoice = word;
-                console.log("oh shit it worked???");
-            });
+            // socket.off("selectedWord", (word, roomId) =>{
+            //     if(roomId != this.roomId){
+            //         return;
+            //     }
+            //     wordChoice = word;
+            //     console.log("oh shit it worked???");
+            // });
+
             this.recieveWordChoice(wordChoice);
             //start the turn timer
             setTimeout(() => {
@@ -364,10 +367,10 @@ class Room{
                 //after the timer
                 //display the word to everyone
                 this.displayWord(wordChoice);
-            },  1000 *  20 * 1); //a turn lasts 1 minutes
+            },  1000 *  60 ); //a turn lasts 1 minutes
             
             }, 1000 * 10); //wait for 10 seconds to choose word
-       }, 2 * 1000  * turnTime + roundTime ); //start this function at the right time. (in 2:00 intervals. So turn 1 starts at 0 turn 2 starts at 2:30)
+       }, durationOfTurn  * turnTime + roundTime ); //start this function at the right time. (in 1:10 intervals. So turn 1 starts at 0 turn 2 starts at 1:10)
        
     }
 
