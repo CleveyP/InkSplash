@@ -219,7 +219,8 @@ class Room{
 
     //return random word from the dictionary of words
     chooseWord() {
-        let randomIndex =  (Math.random() * 2000 ) % (dictionary.length-1);
+        let randomIndex =  Math.floor((Math.random() * 2000 ) % (dictionary.length-1));
+       
         //get the random word
         let res = dictionary[randomIndex];
         //update the dictionary
@@ -272,8 +273,8 @@ class Room{
 
     endGame(){
         //get the first second and third place players
-        let firstIndex=-1, secondIndex=-2, thirdIndex=-3;
-        let max1 = -1, max2 = -2, max3 = -3;
+        let firstIndex=0, secondIndex=-2, thirdIndex=-3;
+        let max1 = 0, max2 = -2, max3 = -3;
         for(let i=0; i<this.numPlayers; i++){
             let currPoints = this.lobby[i].points
             if( currPoints >= max1){
@@ -294,7 +295,7 @@ class Room{
                 max3 = currPoints;
                 thirdIndex=i;
             }
-            winnersNames =  [this.lobby[firstIndex].name, this.lobby[secondIndex].name, ( thirdIndex >=0 && thirdIndex < this.numPlayers) ? this.lobby[thirdIndex].name : ""];
+           const winnersNames =  [this.lobby[firstIndex].name, this.lobby[secondIndex].name, ( thirdIndex >=0 && thirdIndex < this.numPlayers) ? this.lobby[thirdIndex].name : ""];
             //display these winning names to everyone in the room.
             socket.to(this.roomId).emit("displayWinners", winnersNames); //TODO create listener in frontend for this event
         }
@@ -309,7 +310,6 @@ class Room{
     getActivePlayer(){
         //go to next active player
         this.activeIndex = (this.activeIndex+1) % (this.numPlayers);
-        console.log(" the active index is: " + this.activeIndex);
         //set the player to be a drawer
         this.lobby[this.activeIndex].isDrawer = true;
         //update the class's active player field.
@@ -327,10 +327,9 @@ class Room{
         words.push(this.chooseWord());
         words.push(this.chooseWord());
         //emit this word choice to frontend
-        socket.to(this.activePlayer.socketId).emit("wordPrompt", words); // TODO: create the listener in frontend
+        socket.to(this.activePlayer.socketId).emit("wordPrompt", words); // TODO: create Modal in frontend that opens for this socket event
         
         let wordChoice = words[1];
-
           //wait for user to emit a selectWord event (changing the word from the default) for 10 seconds
            //TODO: create an event emitter selectedWord in frontend that sends the selected word back
         socket.on("selectedWord", (word) =>{
@@ -343,9 +342,11 @@ class Room{
            //...waiting
 
            //stop  listening for the user to select a word -- as they have run out of time to select one
-           socket.off("selectedWord");
+           socket.off("selectedWord", (word) =>{
+            wordChoice = word;
+           });
 
-           recieveWordChoice(wordChoice);
+           this.recieveWordChoice(wordChoice);
            //start the turn timer
            setTimeout(() => {
               //allow player to draw
@@ -367,6 +368,7 @@ class Room{
 
 
     recieveWordChoice(word){
+        console.log("the word is: " +word)
         //set the word as the word choice
         this.word = word;
         //display the number of underscores for the word 
