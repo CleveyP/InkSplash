@@ -3,7 +3,7 @@
 import { useState , useEffect} from 'react'
 import { ChatBar } from '@/component/chatbar/ChatBar'
 import { socket } from '@/socket';
-
+import Modal from "react-modal";
 export default function Game(props) {
 
     const [members, setMembers] = useState([]);
@@ -11,7 +11,8 @@ export default function Game(props) {
     const [username, setUsername] = useState("");
     const [isPrivate, setIsPrivate] = useState(false);
     const [passcode, setPasscode] = useState("");
-
+    const [modalIsOpen, setIsOpen] = useState(false);
+    const [wordChoices, setWordChoices] = useState([]);
     const imageList = [
         'https://p.turbosquid.com/ts-thumb/yO/7hrBI5/Cp/cartoon_male_head_cd0008/jpg/1616116047/1920x1080/fit_q87/a046278447828841ba8138da552ac3b4775472ec/cartoon_male_head_cd0008.jpg',
         'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQWPCg6OMtBQf5gtN6e00gGIwndV8cEFTyWHDXF6nbPu1jsyAi0nmQdmEevDC1WUL2oPJw&usqp=CAU',
@@ -36,17 +37,40 @@ export default function Game(props) {
         });
 
 
+
         socket.on("updateRoom", (room) =>{
             setMembers([...room.lobby]);
         });
 
         socket.on("wordPrompt", (words) =>{
            //open modal that will get the one word chosen by user and emit word back to the backend
-
+           setWordChoices([...words]);
+            openModal();
         })
 
     }, []);
     
+
+    //-------------------------------------------FOR WORD SELECTION MODAL--------------------------------------------------------
+    function openModal() {
+        setIsOpen(true);
+      }
+    
+      function closeModal() {
+        setIsOpen(false);
+      }
+
+      const handleSelectWord =(e) =>{
+        
+        let word = e.target.value;
+        //emit this selected word back to the backend
+        socket.emit("selectedWord", (word, roomId));
+        //and close the modal
+        closeModal();
+      }
+
+    //---------------------------------------------END WORD SELECTION MODAL----------------------------------------------------------
+
 
     const handleStartGame = () =>{
         socket.emit("startGame", roomId);
@@ -80,6 +104,32 @@ export default function Game(props) {
                 <ChatBar username={username} roomId ={roomId} />
                 <button className="start-game-button" onClick={handleStartGame}>Start Game</button>
 
+
+
+
+                <Modal
+                isOpen={modalIsOpen}
+                onRequestClose={closeModal}
+                >
+                    <h2>Select One of These Three Words</h2>
+                    <button onClick={closeModal}>close</button>
+                    <div className="word-selection-container">
+                        {
+                            wordChoices.map((word, index) =>{
+                                return (
+                                    <button
+                                    className="word-choice-button" 
+                                    value={word}
+                                    key={index}
+                                    onClick={e => handleSelectWord(e)}
+                                    >
+                                        {word}
+                                    </button> 
+                                )
+                            })
+                        }
+                    </div>
+                </Modal>
             </div>
 
         </div>

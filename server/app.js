@@ -209,6 +209,8 @@ class Room{
         this.activeIndex=0;
         this.activePlayer=null;
         this.word="";
+
+       
     }
 
     addPlayer(user){
@@ -333,21 +335,27 @@ class Room{
             
             let wordChoice = words[1];
             //wait for user to emit a selectWord event (changing the word from the default) for 10 seconds
-            //TODO: create an event emitter selectedWord in frontend that sends the selected word back
-            socket.on("selectedWord", (word) =>{
+            socket.on("selectedWord", (word, roomId) =>{
+                console.log("inside!!!");
+                if(roomId != this.roomId){
+                    return;
+                }
                 wordChoice = word;
+                console.log("oh shit it worked???");
             });
-
             setTimeout(() => {
             
             
             //...waiting
 
-            //stop  listening for the user to select a word -- as they have run out of time to select one
-            socket.off("selectedWord", (word) =>{
+            //stop waiting for the user to select a word.
+            socket.off("selectedWord", (word, roomId) =>{
+                if(roomId != this.roomId){
+                    return;
+                }
                 wordChoice = word;
+                console.log("oh shit it worked???");
             });
-
             this.recieveWordChoice(wordChoice);
             //start the turn timer
             setTimeout(() => {
@@ -356,23 +364,23 @@ class Room{
                 //after the timer
                 //display the word to everyone
                 this.displayWord(wordChoice);
-            },  1000 *  60 * 2); //a turn lasts 2 minutes
+            },  1000 *  20 * 1); //a turn lasts 1 minutes
             
-            }, 1000 * 10); //wait for 10 seconds 
-       }, 2* 1000  * turnTime + roundTime); //start this function at the right time. (in 2:30 intervals. So turn 1 starts at 0 turn 2 starts at 2:30)
+            }, 1000 * 10); //wait for 10 seconds to choose word
+       }, 2 * 1000  * turnTime + roundTime ); //start this function at the right time. (in 2:00 intervals. So turn 1 starts at 0 turn 2 starts at 2:30)
        
     }
 
     displayWord(word){
         //emit an event to everyone in the room that shows: The word was:  this.word
-        socket.to(this.roomId).emit("recieveMessage", { username: "ADMIN", message: `The word was ${word}` });
+        io.sockets.in(this.roomId).emit("recieveMessage", { username: "ADMIN", message: `The word was ${word}` });
        //set the active player to inactive again
        this.activePlayer.isDrawer = false; 
     }
 
 
     recieveWordChoice(word){
-        console.log("the word is: " +word)
+        console.log("the word is: " + word);
         //set the word as the word choice
         this.word = word;
         //display the number of underscores for the word 
