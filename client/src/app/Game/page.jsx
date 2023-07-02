@@ -40,6 +40,10 @@ export default function Game(props) {
             setMembers([...room.lobby]);
         });
 
+        socket.on("wordPrompt", (words) =>{
+           //open modal that will get the one word chosen by user and emit word back to the backend
+
+        })
 
     }, []);
     
@@ -60,9 +64,10 @@ export default function Game(props) {
                     {members.map((member) => {
 
                         //Generate a random image for every member
-                        let randomIndex = ((Math.floor(Math.random() * 100))) % (imageList.length - 1);
+                        let randomIndex = ((Math.floor(Math.random() * 100))) % (imageList.length);
                         console.log(randomIndex + " RANDO");
                         let imageURL = imageList[randomIndex];
+                        //remove that image from the image list so no other user in the room gets it.
                         imageList.splice(randomIndex, 1);
 
                         return(
